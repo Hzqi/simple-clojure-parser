@@ -12,17 +12,6 @@
 ;; parser 的实际类型是: fn (status) -> result
 
 ;; parser需要lazy的，在组合时防止在参数时就发生求值
-;; 这个需要写成宏，不能写成函数，因为参数总是在提前求值的，写成函数时，参数的递归会一直继续下去
-;; (defn lazy [x]
-;;   [:lazy (fn [] x)])
-
-(defn de-lazy [x]
-  (loop [p x]
-    (if (vector? p)
-      (if (= (first p) :lazy)
-        (recur ((nth p 1)))
-        p)
-      p)))
 
 ;; 找出字符串s1在offset之后，与字符串s2的第一个不相同字符的下标
 ;; 当s2与s1在offset之后全符合时（start-with），则返回:all-match-after-offset
@@ -43,9 +32,14 @@
             :all-match-after-offset
             subsize1))))))
 
+(defn force' [maybe-delay]
+  (loop [d maybe-delay]
+    (if (delay? d)
+      (recur (force d))
+      d)))
+
 (defn exec [parser status]
-  (let [p (de-lazy parser)]
-    (p status)))
+  ((force' parser) status))
 
 (defn label [parser msg]
   (fn [status]
@@ -82,28 +76,23 @@
     [:success a 0]))
 
 (defn fmap [parser f]
-  [:lazy (fn []
-           (flat-map parser #(succeed (f %1))))])
+  (delay (flat-map parser #(succeed (f %1)))))
 
 (defn fmap2 [parser1 parser2 f]
-  [:lazy (fn []
-           (flat-map parser1
-                     (fn [a] (fmap parser2
-                                   (fn [b] (f a b))))))])
+  (delay (flat-map parser1
+                   (fn [a] (fmap parser2
+                                 (fn [b] (f a b)))))))
 
 (defn product [parser1 parser2]
-  [:lazy (fn []
-           (fmap2 parser1 parser2 #(vec [%1 %2])))])
+  (delay (fmap2 parser1 parser2 #(vec [%1 %2]))))
 
 (defn as [parser a]
-  [:lazy (fn []
-           (fmap (slice parser)
-                 (fn [_] a)))])
+  (delay (fmap (slice parser)
+               (fn [_] a))))
 
 (defn and' [parser1 parser2]
-  [:lazy (fn []
-           (flat-map parser1
-                     (fn [_] parser2)))])
+  (delay (flat-map parser1
+                   (fn [_] parser2))))
 
 (defn or' [parser1 parser2]
   (fn [status]
@@ -113,34 +102,34 @@
         (exec parser2 status)))))
 
 (defn *> [parser1 parser2]
-  [:lazy (fn []
-           (-> (slice parser1)
-               (fmap2 parser2 (fn [_ b] b))))])
+  (delay
+   (-> (slice parser1)
+       (fmap2 parser2 (fn [_ b] b)))))
 
 (defn <* [parser1 parser2]
-  [:lazy (fn []
-           (fmap2 parser1 (slice parser2) (fn [a _] a)))])
+  (delay
+   (fmap2 parser1 (slice parser2) (fn [a _] a))))
 
 (defn many [parser]
-  [:lazy (fn []
-           (or' (fmap2 parser (many parser) #(conj %2 %1))
-                (succeed '())))])
+  (delay
+   (or' (fmap2 parser (many parser) #(conj %2 %1))
+        (succeed '()))))
 
 (defn many1 [parser]
-  [:lazy (fn [] (fmap2 parser (many parser) #(conj %2 %1)))])
+  (delay (fmap2 parser (many parser) #(conj %2 %1))))
 
 (defn seq1 [parser1 parser2]
-  [:lazy (fn []
-           (-> (fmap2 parser1
-                      (many (*> parser2 parser1))
-                      #(conj %2 %1))))])
+  (delay
+   (-> (fmap2 parser1
+              (many (*> parser2 parser1))
+              #(conj %2 %1)))))
 
 (defn seq' [parser1 parser2]
-  [:lazy (fn [] (-> (seq1 parser1 parser2)
-                    (or' (succeed '()))))])
+  (delay (-> (seq1 parser1 parser2)
+             (or' (succeed '())))))
 
 (defn surround [parser start end]
-  [:lazy (fn [] (*> start (<* parser end)))])
+  (delay (*> start (<* parser end))))
 
 (defn string [s]
   (fn [[source offset :as loc]]
@@ -153,8 +142,7 @@
                       (location/loc-to-error msg)) (not= not-match 0)]))))
 
 (defn char' [c]
-  [:lazy (fn []
-           (fmap (string (str c)) #(nth %1 0)))])
+  (delay (fmap (string (str c)) #(nth %1 0))))
 
 (defn check-first-char [s chars]
   (if (empty? s)
@@ -203,14 +191,13 @@
         [:failure (location/loc-to-error status msg) false]))))
 
 (def whitespace
-  [:lazy (fn [] (regex #"\s*"))])
+  (delay (regex #"\s*")))
 
 (def digits
-  [:lazy (fn [] (regex #"\d+"))])
+  (delay (regex #"\d+")))
 
 (defn thru [s]
-  [:lazy (fn []
-           (regex (re-pattern (str ".*?" (java.util.regex.Pattern/quote s)))))])
+  (delay (regex (re-pattern (str ".*?" (java.util.regex.Pattern/quote s))))))
 
 (defn- remove-str-last [s]
   (if (empty? s)
@@ -218,51 +205,44 @@
     (util/slice s 0 (dec (count s)))))
 
 (def quoted
-  [:lazy (fn []
-           (-> (string "\"")
-               (*> (thru "\""))
-               (fmap #(remove-str-last %1))))])
+  (delay (-> (string "\"")
+             (*> (thru "\""))
+             (fmap #(remove-str-last %1)))))
 
 (defn >> [x] (fn [_] x))
 
 (def escaped
-  [:lazy (fn []
-           (let [a (fmap (string "\\\"") (>> "\""))
-                 b (fmap (string "\\\\") (>> "\\"))
-                 c (fmap (string "\\/") (>> "/"))
-                 d (fmap (string "\\b") (>> "\b"))
-                 e (fmap (string "\\f") (>> "\f"))
-                 f (fmap (string "\\n") (>> "\n"))
-                 g (fmap (string "\\r") (>> "\r"))
-                 h (fmap (string "\\t") (>> "\t"))]
-             (-> a
-                 (or' b)
-                 (or' c)
-                 (or' d)
-                 (or' e)
-                 (or' f)
-                 (or' g)
-                 (or' h))))])
+  (delay (let [a (fmap (string "\\\"") (>> "\""))
+               b (fmap (string "\\\\") (>> "\\"))
+               c (fmap (string "\\/") (>> "/"))
+               d (fmap (string "\\b") (>> "\b"))
+               e (fmap (string "\\f") (>> "\f"))
+               f (fmap (string "\\n") (>> "\n"))
+               g (fmap (string "\\r") (>> "\r"))
+               h (fmap (string "\\t") (>> "\t"))]
+           (-> a
+               (or' b)
+               (or' c)
+               (or' d)
+               (or' e)
+               (or' f)
+               (or' g)
+               (or' h)))))
 
 (def escaped-quoted
-  [:lazy (fn []
-           (-> (or' escaped (char-not-in \" \\))
-               (many1)
-               (surround (string "\"") (string "\""))
-               (fmap #(join %1))))])
+  (delay (-> (or' escaped (char-not-in \" \\))
+             (many1)
+             (surround (string "\"") (string "\""))
+             (fmap #(join %1)))))
 
 (defn token [parser]
-  [:lazy (fn []
-           (surround parser whitespace whitespace))])
+  (delay (surround parser whitespace whitespace)))
 
 (def double-string
-  [:lazy (fn []
-           (token (regex #"[-+]?([0-9]*\.)?[0-9]+([eE][-+]?[0-9]+)?")))])
+  (delay (token (regex #"[-+]?([0-9]*\.)?[0-9]+([eE][-+]?[0-9]+)?"))))
 
 (def eof
-  [:lazy (fn []
-           (label (regex #"\z") "unexpected trailing characters"))])
+  (delay (label (regex #"\z") "unexpected trailing characters")))
 
 (defn file-root [parser]
-  [:lazy (fn []
-           (<* parser eof))])
+  (delay (<* parser eof)))

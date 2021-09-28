@@ -62,13 +62,13 @@ lit ::= null | number | escaped-quoted-string | true | false
 使用时是直接调用（暂未包含工程向的工具函数，如包装结果，打印错误等）：
 
 ```clojure
-(simple-parser.parser/exec root "{
+(simple-parser.parser/exec root ["{
     \"name\" : \"jacky\",
     \"age\" : 20 ,
     \"skill\": [\"go\", \"elixir\", \"java\", \"clojure\"]
-}")
+}" 0])
 ;; => [:success {
 ;;        "name" "jacky"
 ;;        "age" 20
-;;        "skill"  '("go" "elixir" "java" "clojure")} 107]
+;;        "skill"  '("go" "elixir" "java" "clojure")} 91]
 ```
