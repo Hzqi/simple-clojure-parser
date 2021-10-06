@@ -1,5 +1,5 @@
-(ns simple-parser.status
-  (:require [simple-parser.util :as util]))
+(ns simple-parser.v1.status
+  (:require [simple-parser.v1.util :as util]))
 
 ;; ParserStatus 解析器的状态信息
 ;; 使用location作为解析起的中间状态 [ source offset ]

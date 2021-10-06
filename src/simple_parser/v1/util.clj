@@ -1,4 +1,4 @@
-(ns simple-parser.util)
+(ns simple-parser.v1.util)
 
 (defn slice
   ([s start end]

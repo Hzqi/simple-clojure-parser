@@ -1,6 +1,6 @@
-(ns simple-parser.location
+(ns simple-parser.v1.location
   (:require [clojure.string :refer [last-index-of, split-lines, join]]
-            [simple-parser.util :as util]))
+            [simple-parser.v1.util :as util]))
 
 ;; Location 表示解析时的位置信息
 ;; [ source, offset ] 位置信息的tuple，source是输入源， offset是位置下标

@@ -1,16 +1,16 @@
-(ns simple-parser.example.json
-  (:require [simple-parser.parser :refer [*>
-                                          double-string
-                                          escaped-quoted
-                                          fmap
-                                          or'
-                                          product
-                                          quoted
-                                          seq'
-                                          string
-                                          surround
-                                          token
-                                          whitespace]]))
+(ns simple-parser.v1.example.json
+  (:require [simple-parser.v1.parser :refer [*>
+                                             double-string
+                                             escaped-quoted
+                                             fmap
+                                             or'
+                                             product
+                                             quoted
+                                             seq'
+                                             string
+                                             surround
+                                             token
+                                             whitespace]]))
 
 (declare root)
 (declare obj)

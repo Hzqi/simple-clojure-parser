@@ -1,5 +1,5 @@
-(ns simple-parser.error
-  (:require [simple-parser.location :as location]))
+(ns simple-parser.v1.error
+  (:require [simple-parser.v1.location :as location]))
 
 ;; ParserError 表示解析错误时的信息
 ;; '( [location, msg], ... ) 解析失败时的信息栈，使用list来实现的栈

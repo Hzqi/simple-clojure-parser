@@ -1,6 +1,6 @@
-(ns simple-parser.core-test
+(ns simple-parser.v1.core-test
   (:require [clojure.test :refer :all]
-            [simple-parser.core :refer :all]))
+            [simple-parser.v1.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."

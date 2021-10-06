@@ -1,5 +1,5 @@
-(ns simple-parser.result
-  (:require [simple-parser.error :as error]))
+(ns simple-parser.v1.result
+  (:require [simple-parser.v1.error :as error]))
 
 ;; ParserResult 表示解析后的结果值
 ;; [:success result length] 解析成功时的tuple，result为结果，length为成功的长度

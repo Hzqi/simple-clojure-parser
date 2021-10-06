@@ -1,10 +1,10 @@
-(ns simple-parser.parser
-  (:require [simple-parser.status :as status]
-            [simple-parser.location :as location]
-            [simple-parser.error :as error]
-            [simple-parser.result :as result]
+(ns simple-parser.v1.parser
+  (:require [simple-parser.v1.status :as status]
+            [simple-parser.v1.location :as location]
+            [simple-parser.v1.error :as error]
+            [simple-parser.v1.result :as result]
             [clojure.string :refer [starts-with? join]]
-            [simple-parser.util :as util]))
+            [simple-parser.v1.util :as util]))
 
 ;; 因为Clojure是动态语言，有很多类型可以直接使用map、vector等代替。
 ;; 实际上也可以使用deftype、defrecord、defprotocol来实现，会比较更强类型一些，
