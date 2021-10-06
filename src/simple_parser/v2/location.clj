@@ -24,11 +24,6 @@
             (inc offset)
             (- offset %1))))))
 
-(defn loc-to-error
-  "构建位置错误栈"
-  [loc msg]
-  [[loc msg]])
-
 (defn loc-advance
   "前进n位置"
   [loc n]
